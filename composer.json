@@ -1,12 +1,13 @@
 {
-  "name": "scil/laravel-fly",
-  "description": "make laravel faster by using swoole extension.",
+  "homepage": "https://github.com/scil/LaravelFly-fly-files",
+  "name": "scil/laravel-fly-files",
+  "description": "hack files used by LaravelFly.",
   "type": "library",
   "keywords": [
     "swoole",
-    "laravel"
+    "laravel",
+    "LaravelFly"
   ],
-  "homepage": "https://github.com/scil/LaravelFly-fly-files",
   "license": "MIT",
   "authors": [
     {
