@@ -15,7 +15,7 @@
     }
   ],
   "require": {
-    "laravel/framework": "5.5.40"
+    "laravel/framework": "5.5.43"
   },
   "autoload-dev": {
     "psr-4": {

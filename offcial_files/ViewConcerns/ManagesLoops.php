@@ -22,7 +22,6 @@ trait ManagesLoops
      */
     public function addLoop($data)
     {
-
         $length = is_array($data) || $data instanceof Countable ? count($data) : null;
 
         $parent = Arr::last($this->loopsStack);
