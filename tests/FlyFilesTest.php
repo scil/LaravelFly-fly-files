@@ -1,9 +1,11 @@
 <?php
 
-use BaseTestCase as Base;
+namespace LaravelFlyFiles\Test;
+use LaravelFlyFiles\Test\BaseTestCase as Base;
 
 class FlyFilesTest extends Base
 {
+	static $map;
 	
     const mapFlyFiles = [
         'Container.php' =>
@@ -32,7 +34,7 @@ class FlyFilesTest extends Base
          * on each boot of PaginationServiceProvider and NotificationServiceProvider,
          * view paths would be appended to app('view')->finder->hints by  $this->loadViewsFrom again and again
          */
-        'FileViewFinder' . (LARAVELFLY_SERVICES['view.finder'] ? 'SameView' : '') . '.php' =>
+        'FileViewFinder.php' =>
             '/vendor/laravel/framework/src/Illuminate/View/FileViewFinder.php',
 
     ];
@@ -78,7 +80,7 @@ class FlyFilesTest extends Base
 
     function testFlyFiles()
     {
-        $map = static::getAllFlyMap();
+        static::$map = $map = static::getAllFlyMap();
 
         $flyFilesNumber = 14;
 
@@ -98,9 +100,10 @@ class FlyFilesTest extends Base
         foreach ($map as $f => $originLocation) {
 
             self::assertEquals(true, is_file(static::$backOfficalDir . $f));
-            if ($f === 'Http/Kernel.php')
-                $f = '../Kernel.php';
-            self::assertEquals(true, is_file(static::$flyDir . $f), static::$flyDir . $f);
+            
+            if ($f !== 'Http/Kernel.php')
+	            self::assertEquals(true, is_file(static::$flyDir . $f), static::$flyDir . $f);
+	        
             // var_dump(static::$workingRoot . $originLocation);
             self::assertEquals(true, is_file(static::$workingRoot . $originLocation));
         }

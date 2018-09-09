@@ -1,36 +1,24 @@
 <?php
 
+namespace LaravelFlyFiles\Test;
 /**
- ** first:
- ** cd laravel_fly_root
- ** git clone -b 5.6 https://github.com/laravel/framework.git /vagrant/www/zc/vendor/scil/laravel-fly-local/vendor/laravel/framework
- ** composer update
- ** //cd laravel_project_root
- *
- ** Mode Map
- * vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist --testsuit LaravelFly_Map_Process
- *
- * vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist --testsuit LaravelFly_Map_Other
- *
- * vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist --testsuit LaravelFly_Map_LaravelTests
- *
- ** Mode Backup
- * vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist --testsuit LaravelFly_Backup
- *
- ** example for debugging with gdb:
- * gdb ~/php/7.1.14root/bin/php       // this php is a debug versioin, see D:\vagrant\ansible\files\scripts\php-debug\
- * r  vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist --testsuit LaravelFly_Map_LaravelTests
- *
+ * composer update
+ * vendor/bin/phpunit  --stop-on-failure -c phpunit.xml.dist
  */
 
 use PHPUnit\Framework\TestCase;
 
 abstract class BaseTestCase extends TestCase
 {
+	static $flyDir;
+	static $backOfficalDir;
+	static $workingRoot;
 
     static function setUpBeforeClass()
     {
-
+	static::$flyDir = __DIR__. '/../src/';
+		static::$backOfficalDir =  __DIR__. '/../offcial_files/';
+		static::$workingRoot = __DIR__. '/../';
     }
 
     function compareFilesContent($map)
@@ -42,7 +30,7 @@ abstract class BaseTestCase extends TestCase
 
         foreach ($map as $back => $offcial) {
             $back = static::$backOfficalDir . $back;
-            $offcial = static::$laravelAppRoot . $offcial;
+            $offcial = static::$workingRoot . $offcial;
 
             $cmdArguments = "$diffOPtions $back $offcial ";
 

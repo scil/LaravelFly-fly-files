@@ -1,6 +1,8 @@
 <?php
 
-use BaseTestCase as Base;
+namespace LaravelFlyFiles\Test;
+
+use LaravelFlyFiles\Test\BaseTestCase as Base;
 
 class ExtendedFlyFilesTest extends Base
 {
@@ -57,7 +59,7 @@ class ExtendedFlyFilesTest extends Base
         $this->assertEquals(7, count($this->partFileMap));
         foreach ($this->partFileMap as $partFile => $offcial) {
             $partFile = static::$backOfficalDir . $partFile;
-            $offcial = static::$laravelAppRoot . $offcial;
+            $offcial = static::$workingRoot . $offcial;
             $parts = explode('===A===', file_get_contents($partFile));
             $full = file_get_contents($offcial);
             $full = preg_replace('/\s+/',' ',$full);
