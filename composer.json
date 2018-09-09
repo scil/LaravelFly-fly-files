@@ -17,6 +17,10 @@
   "require": {
     "laravel/framework": "5.5.43"
   },
+      "require-dev": {
+    "hhxsv5/laravel-s": "~2.0",
+    "phpunit/phpunit": "~7.0"
+    },
   "autoload-dev": {
     "psr-4": {
       "LaravelFly\\Tests\\": "offcial_files/"
