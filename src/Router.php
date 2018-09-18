@@ -27,6 +27,7 @@ use Illuminate\Contracts\Routing\Registrar as RegistrarContract;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
+
 class Router implements RegistrarContract, BindingRegistrar
 {
     use \LaravelFly\Map\Util\Dict {
@@ -41,7 +42,7 @@ class Router implements RegistrarContract, BindingRegistrar
 
     protected $events;
     /**
-     * The IoC container instance.
+*    * The IoC container instance.
      *
      * @var \LaravelFly\Map\Application
      */
