@@ -32,6 +32,18 @@ abstract class Facade
         unset(static::$resolvedInstance[$cid]);
     }
 
+
+    static function initUserCoroutine($parentId, $childId)
+    {
+        static::$resolvedInstance[$childId] = static::$resolvedInstance[$parentId];
+
+    }
+
+    static function unsetUserCoroutine($childId)
+    {
+        unset(static::$resolvedInstance[$childId]);
+    }
+
     public static function initOnWorker(array $array)
     {
         static::$resolvedInstance[WORKER_COROUTINE_ID] = [];
