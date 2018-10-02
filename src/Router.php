@@ -56,7 +56,7 @@ class Router implements RegistrarContract, BindingRegistrar
 
     protected static $arrayAttriForObj = ['middleware', 'middlewareGroups', 'middlewarePriority', 'binders', 'patterns',
 
-        // no refactor for coroutine
+        // refactor no need for coroutine
         // 'groupStack'
     ];
 
