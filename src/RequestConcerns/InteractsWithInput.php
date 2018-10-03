@@ -309,11 +309,12 @@ trait InteractsWithInput
      */
     public function allFiles()
     {
-        $files = static::$corDict[\Swoole\Coroutine::getuid()]['files']->all();
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+        $files = $dict['files']->all();
 
-        return $this->convertedFiles
-            ? $this->convertedFiles
-            : $this->convertedFiles = $this->convertUploadedFiles($files);
+        return $dict['convertedFiles']
+            ? $dict['convertedFiles']
+            : $dict['convertedFiles'] = $this->convertUploadedFiles($files);
     }
 
     /**

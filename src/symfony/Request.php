@@ -69,15 +69,6 @@ class Request
 
     protected static $httpMethodParameterOverride = false;
 
-
-    /**
-     * @var string
-     */
-
-    /**
-     * @var string
-     */
-
     /**
      * @var string
      */
@@ -121,6 +112,7 @@ class Request
         self::HEADER_X_FORWARDED_PORT => 'X_FORWARDED_PORT',
     );
 
+    // hack
     protected static $instance;
 
     /**
@@ -311,6 +303,7 @@ class Request
      */
     public static function setFactory($callable)
     {
+        throw new SingletonRequestException();
         self::$requestFactory = $callable;
     }
 

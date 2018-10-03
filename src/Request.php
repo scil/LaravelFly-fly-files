@@ -24,28 +24,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
         Concerns\InteractsWithInput,
         Macroable;
 
-
-    /**
-     * All of the converted files for the request.
-     *
-     * @var array
-     */
-    protected $convertedFiles;
-
-    /**
-     * The user resolver callback.
-     *
-     * @var \Closure
-     */
-    protected $userResolver;
-
-    /**
-     * The route resolver callback.
-     *
-     * @var \Closure
-     */
-    protected $routeResolver;
-
     /**
      * Create a new Illuminate HTTP request from server variables.
      *
@@ -518,7 +496,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function getUserResolver()
     {
-        return $this->userResolver ?: function () {
+        return static::$corDict[\Swoole\Coroutine::getuid()]['userResolver'] ?: function () {
             //
         };
     }
@@ -531,7 +509,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function setUserResolver(Closure $callback)
     {
-        $this->userResolver = $callback;
+        static::$corDict[\Swoole\Coroutine::getuid()]['userResolver'] = $callback;
 
         return $this;
     }
@@ -543,7 +521,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function getRouteResolver()
     {
-        return $this->routeResolver ?: function () {
+        return static::$corDict[\Swoole\Coroutine::getuid()]['routeResolver'] ?: function () {
             //
         };
     }
@@ -556,7 +534,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function setRouteResolver(Closure $callback)
     {
-        $this->routeResolver = $callback;
+        static::$corDict[\Swoole\Coroutine::getuid()]['routeResolver'] = $callback;
 
         return $this;
     }
