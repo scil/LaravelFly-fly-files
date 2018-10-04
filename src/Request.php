@@ -2,6 +2,9 @@
 /**
  * 1. dict
  * 2. SingletonRequestException
+ * 3. cache vars prefix with 'fly'
+ * 4. extra var $corDict['flyChangedForAll']
+ * 5. extra caches marked with 'hack'
  */
 
 namespace Illuminate\Http;
@@ -61,7 +64,15 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function root()
     {
-        return rtrim($this->getSchemeAndHttpHost().$this->getBaseUrl(), '/');
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyRoot']) {
+            return $dict['flyRoot'] = rtrim($this->getSchemeAndHttpHost() . $this->getBaseUrl(), '/');
+        }
+
+        return $dict['flyRoot'];
+
+        return rtrim($this->getSchemeAndHttpHost() . $this->getBaseUrl(), '/');
     }
 
     /**
@@ -71,6 +82,14 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function url()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyUrl']) {
+            return $dict['flyUrl'] = rtrim(preg_replace('/\?.*/', '', $this->getUri()), '/');
+        }
+
+        return $dict['flyUrl'];
+
         return rtrim(preg_replace('/\?.*/', '', $this->getUri()), '/');
     }
 
@@ -81,26 +100,51 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function fullUrl()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyFullUrl']) {
+            $query = $this->getQueryString();
+
+            $question = $this->getBaseUrl() . $this->getPathInfo() == '/' ? '/?' : '?';
+
+            return $dict['flyFullUrl'] = $query ? $this->url() . $question . $query : $this->url();;
+        }
+
+        return $dict['flyFullUrl'];
+
         $query = $this->getQueryString();
 
-        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
+        $question = $this->getBaseUrl() . $this->getPathInfo() == '/' ? '/?' : '?';
 
-        return $query ? $this->url().$question.$query : $this->url();
+        return $query ? $this->url() . $question . $query : $this->url();
     }
 
     /**
      * Get the full URL for the request with the added query string parameters.
      *
-     * @param  array  $query
+     * @param  array $query
      * @return string
      */
     public function fullUrlWithQuery(array $query)
     {
-        $question = $this->getBaseUrl().$this->getPathInfo() == '/' ? '/?' : '?';
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyUrlWithQuery']) {
+            $question = $this->getBaseUrl() . $this->getPathInfo() == '/' ? '/?' : '?';
+
+            return $dict['flyUrlWithQuery'] = count($this->query()) > 0
+                ? $this->url() . $question . http_build_query(array_merge($this->query(), $query))
+                : $this->fullUrl() . $question . http_build_query($query);
+
+        }
+
+        return $dict['flyUrlWithQuery'];
+
+        $question = $this->getBaseUrl() . $this->getPathInfo() == '/' ? '/?' : '?';
 
         return count($this->query()) > 0
-            ? $this->url().$question.http_build_query(array_merge($this->query(), $query))
-            : $this->fullUrl().$question.http_build_query($query);
+            ? $this->url() . $question . http_build_query(array_merge($this->query(), $query))
+            : $this->fullUrl() . $question . http_build_query($query);
     }
 
     /**
@@ -110,6 +154,15 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function path()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyPath']) {
+            $pattern = trim($this->getPathInfo(), '/');
+            return $dict['flyPath'] = $pattern == '' ? '/' : $pattern;
+        }
+
+        return $dict['flyPath'];
+
         $pattern = trim($this->getPathInfo(), '/');
 
         return $pattern == '' ? '/' : $pattern;
@@ -128,8 +181,8 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get a segment from the URI (1 based index).
      *
-     * @param  int  $index
-     * @param  string|null  $default
+     * @param  int $index
+     * @param  string|null $default
      * @return string|null
      */
     public function segment($index, $default = null)
@@ -144,6 +197,17 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function segments()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flySegments']) {
+            $segments = explode('/', $this->decodedPath());
+            return $dict['flySegments'] = array_values(array_filter($segments, function ($value) {
+                return $value !== '';
+            }));
+        }
+
+        return $dict['flySegments'];
+
         $segments = explode('/', $this->decodedPath());
 
         return array_values(array_filter($segments, function ($value) {
@@ -154,13 +218,16 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Determine if the current request URI matches a pattern.
      *
-     * @param  dynamic  $patterns
+     * @param  dynamic $patterns
      * @return bool
      */
     public function is(...$patterns)
     {
+        // hack
+        $path = $this->decodedPath();
+
         foreach ($patterns as $pattern) {
-            if (Str::is($pattern, $this->decodedPath())) {
+            if (Str::is($pattern, $path)) {
                 return true;
             }
         }
@@ -171,7 +238,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Determine if the route name matches a given pattern.
      *
-     * @param  dynamic  $patterns
+     * @param  dynamic $patterns
      * @return bool
      */
     public function routeIs(...$patterns)
@@ -182,7 +249,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Determine if the current request URL and query string matches a pattern.
      *
-     * @param  dynamic  $patterns
+     * @param  dynamic $patterns
      * @return bool
      */
     public function fullUrlIs(...$patterns)
@@ -235,6 +302,14 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function ip()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyIp']) {
+            return $dict['flyIp'] = $this->getClientIp();
+        }
+
+        return $dict['flyIp'];
+
         return $this->getClientIp();
     }
 
@@ -245,6 +320,14 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function ips()
     {
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyIps']) {
+            return $dict['flyIps'] = $this->getClientIps();
+        }
+
+        return $dict['flyIps'];
+
         return $this->getClientIps();
     }
 
@@ -261,11 +344,12 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Merge new input into the current request's input array.
      *
-     * @param  array  $input
+     * @param  array $input
      * @return \Illuminate\Http\Request
      */
     public function merge(array $input)
     {
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
         $this->getInputSource()->add($input);
 
         return $this;
@@ -274,11 +358,12 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Replace the input for the current request.
      *
-     * @param  array  $input
+     * @param  array $input
      * @return \Illuminate\Http\Request
      */
     public function replace(array $input)
     {
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
         $this->getInputSource()->replace($input);
 
         return $this;
@@ -289,8 +374,8 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      *
      * Instead, you may use the "input" method.
      *
-     * @param  string  $key
-     * @param  mixed  $default
+     * @param  string $key
+     * @param  mixed $default
      * @return mixed
      */
     public function get($key, $default = null)
@@ -301,15 +386,16 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the JSON payload for the request.
      *
-     * @param  string  $key
-     * @param  mixed   $default
+     * @param  string $key
+     * @param  mixed $default
      * @return \Symfony\Component\HttpFoundation\ParameterBag|mixed
      */
     public function json($key = null, $default = null)
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
-        if (! isset($dict['json'])) {
-            $dict['json'] = new ParameterBag((array) json_decode($this->getContent(), true));
+        if (!isset($dict['json'])) {
+            static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
+            $dict['json'] = new ParameterBag((array)json_decode($this->getContent(), true));
         }
 
         if (is_null($key)) {
@@ -326,6 +412,20 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     protected function getInputSource()
     {
+        // no cache for json, because there's a method setJson may change cache
+        if ($this->isJson()) {
+            return $this->json();
+        }
+
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if (null === $dict['flyInputSource']) {
+            return $dict['flyInputSource'] =
+                in_array($this->getRealMethod(), ['GET', 'HEAD']) ? $dict['query'] : $dict['request'];
+        }
+
+        return $dict['flyInputSource'];
+
         if ($this->isJson()) {
             return $this->json();
         }
@@ -338,24 +438,26 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Create a new request instance from the given Laravel request.
      *
-     * @param  \Illuminate\Http\Request  $from
-     * @param  \Illuminate\Http\Request|null  $to
+     * @param  \Illuminate\Http\Request $from
+     * @param  \Illuminate\Http\Request|null $to
      * @return static
      */
     public static function createFrom(self $from, $to = null)
     {
         throw new SingletonRequestException();
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
     }
 
     /**
      * Create an Illuminate request from a Symfony instance.
      *
-     * @param  \Symfony\Component\HttpFoundation\Request  $request
+     * @param  \Symfony\Component\HttpFoundation\Request $request
      * @return \Illuminate\Http\Request
      */
     public static function createFromBase(SymfonyRequest $request)
     {
         throw new SingletonRequestException();
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
     }
 
     /**
@@ -364,17 +466,18 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     public function duplicate(array $query = null, array $request = null, array $attributes = null, array $cookies = null, array $files = null, array $server = null)
     {
         throw new SingletonRequestException();
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
     }
 
     /**
      * Filter the given array of files, removing any empty values.
      *
-     * @param  mixed  $files
+     * @param  mixed $files
      * @return mixed
      */
     protected function filterFiles($files)
     {
-        if (! $files) {
+        if (!$files) {
             return;
         }
 
@@ -400,7 +503,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function session()
     {
-        if (! $this->hasSession()) {
+        if (!$this->hasSession()) {
             throw new RuntimeException('Session store not set on request.');
         }
 
@@ -420,7 +523,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Set the session instance on the request.
      *
-     * @param  \Illuminate\Contracts\Session\Session  $session
+     * @param  \Illuminate\Contracts\Session\Session $session
      * @return void
      */
     public function setLaravelSession($session)
@@ -431,7 +534,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the user making the request.
      *
-     * @param  string|null  $guard
+     * @param  string|null $guard
      * @return mixed
      */
     public function user($guard = null)
@@ -442,7 +545,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the route handling the request.
      *
-     * @param  string|null  $param
+     * @param  string|null $param
      *
      * @return \Illuminate\Routing\Route|object|string
      */
@@ -466,7 +569,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function fingerprint()
     {
-        if (! $route = $this->route()) {
+        if (!$route = $this->route()) {
             throw new RuntimeException('Unable to generate fingerprint. Route unavailable.');
         }
 
@@ -479,11 +582,13 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Set the JSON payload for the request.
      *
-     * @param  \Symfony\Component\HttpFoundation\ParameterBag  $json
+     * @param  \Symfony\Component\HttpFoundation\ParameterBag $json
      * @return $this
      */
     public function setJson($json)
     {
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
+
         static::$corDict[\Swoole\Coroutine::getuid()]['json'] = $json;
 
         return $this;
@@ -504,7 +609,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Set the user resolver callback.
      *
-     * @param  \Closure  $callback
+     * @param  \Closure $callback
      * @return $this
      */
     public function setUserResolver(Closure $callback)
@@ -529,7 +634,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Set the route resolver callback.
      *
-     * @param  \Closure  $callback
+     * @param  \Closure $callback
      * @return $this
      */
     public function setRouteResolver(Closure $callback)
@@ -552,7 +657,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Determine if the given offset exists.
      *
-     * @param  string  $offset
+     * @param  string $offset
      * @return bool
      */
     public function offsetExists($offset)
@@ -566,7 +671,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the value at the given offset.
      *
-     * @param  string  $offset
+     * @param  string $offset
      * @return mixed
      */
     public function offsetGet($offset)
@@ -577,47 +682,52 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Set the value at the given offset.
      *
-     * @param  string  $offset
-     * @param  mixed  $value
+     * @param  string $offset
+     * @param  mixed $value
      * @return void
      */
     public function offsetSet($offset, $value)
     {
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
         $this->getInputSource()->set($offset, $value);
     }
 
     /**
      * Remove the value at the given offset.
      *
-     * @param  string  $offset
+     * @param  string $offset
      * @return void
      */
     public function offsetUnset($offset)
     {
+        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
         $this->getInputSource()->remove($offset);
     }
 
     /**
      * Check if an input element is set on the request.
      *
-     * @param  string  $key
+     * @param  string $key
      * @return bool
      */
     public function __isset($key)
     {
-        return ! is_null($this->__get($key));
+        return !is_null($this->__get($key));
     }
 
     /**
      * Get an input element from the request.
      *
-     * @param  string  $key
+     * @param  string $key
      * @return mixed
      */
     public function __get($key)
     {
-        if (array_key_exists($key, $this->all())) {
-            return data_get($this->all(), $key);
+        // hack
+        $all = $this->all();
+
+        if (array_key_exists($key, $all)) {
+            return data_get($all, $key);
         }
 
         return $this->route($key);

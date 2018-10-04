@@ -182,7 +182,15 @@ trait InteractsWithInput
      */
     public function all($keys = null)
     {
-        $input = array_replace_recursive($this->input(), $this->allFiles());
+        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        if ($dict['flyChangedForAll'] || (null === $dict['flyAll'])) {
+            $dict['flyAll'] = $input = array_replace_recursive($this->input(), $this->allFiles());
+            $dict['flyChangedForAll'] = false;
+        } else {
+            $input = $dict['flyAll'];
+        }
+
 
         if (!$keys) {
             return $input;
