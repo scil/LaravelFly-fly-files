@@ -554,7 +554,7 @@ class Request
      */
     public function get($key, $default = null)
     {
-        $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+        $dict = static::$corDict[\Swoole\Coroutine::getuid()];
 
         if ($this !== $result = $dict['attributes']->get($key, $this)) {
             return $result;
