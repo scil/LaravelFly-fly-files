@@ -2,7 +2,9 @@
 /**
  * 1 StaticDict. // inited in LaravelFly\Map\Illuminate\Database\DatabaseServiceProvider
  * 2.traitsBoots
+ * 3.cloneBuilderCache and saveBuilderCache
  */
+
 
 namespace Illuminate\Database\Eloquent;
 
@@ -19,12 +21,12 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Contracts\Queue\QueueableCollection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
+use LaravelFly\Map\Illuminate\Database\DatabaseManager;
 use LaravelFly\Map\Util\StaticDict;
 
 abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
 {
     use StaticDict;
-    protected static $normalStaticAttri = [];
     protected static $arrayStaticAttri = ['booted'];
 
     // hack
@@ -111,7 +113,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     /**
      * The connection resolver instance.
      *
-     * @var \Illuminate\Database\ConnectionResolverInterface
+     * @var \Illuminate\Database\ConnectionResolverInterface | DatabaseManager
      */
     protected static $resolver;
 
@@ -914,6 +916,75 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return (new static)->newQuery();
     }
 
+
+    /**
+     * @param $cache Builder
+     */
+    function cloneBuilderCache($cache)
+    {
+        // basicBuilder will auto be cloned. see: __clone()
+        $builder = clone $cache;
+
+        $model = $this;
+        $connection = $this->getConnection();
+        (function () use ($model, $connection) {
+            /**
+             * @var Builder $this
+             */
+            $this->model = $model;
+
+            (function () use ($connection) {
+                /**
+                 * @var \Illuminate\Database\Query\Builder $this
+                 */
+                $this->connection = $connection;
+                if (USE_NEWLY_CREATED_G_AND_P) {
+                    $this->grammar = $connection->getQueryGrammar();
+                    $this->processor = $connection->getPostProcessor();
+                }
+
+            })->call($this->query);
+        })->call($builder);
+
+        return $builder;
+    }
+
+    /**
+     * @param $builder Builder
+     * @param $cache array
+     * @param $class string
+     * @return Builder
+     */
+    function saveBuilderCache($builder, &$cache, $class)
+    {
+        $back = clone $builder;
+
+        $cache[$class] = $back;
+
+        (function () {
+            /**
+             * @var Builder $this
+             */
+            $this->model = null;
+
+            // $this->query // basicBuilder will auto be cloned. see: __clone()
+
+            (function () {
+                /**
+                 * @var \Illuminate\Database\Query\Builder $this
+                 */
+                $this->connection = null;
+                if (USE_NEWLY_CREATED_G_AND_P) {
+                    $this->grammar = null;
+                    $this->processor = null;
+                }
+            })->call($this->query);
+
+        })->call($back);
+
+        return $builder;
+    }
+
     /**
      * Get a new query builder for the model's table.
      *
@@ -921,7 +992,19 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQuery()
     {
+        static $cache = [];
+        $class = static::class;
+        if (isset($cache[$class])) {
+            return $this->cloneBuilderCache($cache[$class]);
+        }
+
+        return
+            $this->saveBuilderCache(
+                $this->registerGlobalScopes($this->newQueryWithoutScopes())
+                , $cache, $class);
+
         return $this->registerGlobalScopes($this->newQueryWithoutScopes());
+
     }
 
     /**
@@ -931,6 +1014,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newModelQuery()
     {
+
         return $this->newEloquentBuilder(
             $this->newBaseQueryBuilder()
         )->setModel($this);
@@ -943,6 +1027,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQueryWithoutRelationships()
     {
+
         return $this->registerGlobalScopes(
             $this->newEloquentBuilder($this->newBaseQueryBuilder())->setModel($this)
         );
@@ -970,6 +1055,20 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQueryWithoutScopes()
     {
+
+        static $cache = [];
+        $class = static::class;
+        if (isset($cache[$class])) {
+            return $this->cloneBuilderCache($cache[$class]);
+        }
+
+        return $this->saveBuilderCache(
+            $this->newModelQuery()
+                ->with($this->with)
+                ->withCount($this->withCount),
+            $cache,
+            $class);
+
         return $this->newModelQuery()
             ->with($this->with)
             ->withCount($this->withCount);
