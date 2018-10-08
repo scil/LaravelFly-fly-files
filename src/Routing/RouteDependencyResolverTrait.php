@@ -13,8 +13,8 @@ use Illuminate\Support\Arr;
 use ReflectionFunctionAbstract;
 
 const CONTROLLER_METHOD_ARGUMENTS_UNKNOWN = -1;
-const CONTROLLER_METHOD_ARGUMENTS_NO = 0; // no args
-const CONTROLLER_METHOD_ARGUMENTS_SIMPLE = 1; // no type hint, no default values; or !method_exists
+// const CONTROLLER_METHOD_ARGUMENTS_NO = 0; // no args
+const CONTROLLER_METHOD_ARGUMENTS_SIMPLE = 1; // no type hint, no default values; or !method_exists; or no args
 const CONTROLLER_METHOD_ARGUMENTS_NO_HINT = 2; // no type hint, has default values
 const CONTROLLER_METHOD_ARGUMENTS_ALL_HINT = 3; // no type hint, has default values
 const CONTROLLER_METHOD_ARGUMENTS_OTHER = 4; // no type hint, has default values
@@ -48,8 +48,7 @@ trait RouteDependencyResolverTrait
 
         if (isset($cacheMark[$cacheKey])) {
             switch ($cacheMark[$cacheKey]) {
-                case CONTROLLER_METHOD_ARGUMENTS_NO:
-                    return [];
+                // case CONTROLLER_METHOD_ARGUMENTS_NO:
                 case CONTROLLER_METHOD_ARGUMENTS_SIMPLE:
                     return $parameters;
                 case CONTROLLER_METHOD_ARGUMENTS_NO_HINT:
@@ -178,7 +177,8 @@ trait RouteDependencyResolverTrait
 
         $number = $reflector->getNumberOfParameters();
         if ($number == 0) {
-            $argumentsMark = CONTROLLER_METHOD_ARGUMENTS_NO;
+            // $argumentsMark = CONTROLLER_METHOD_ARGUMENTS_NO;
+            $argumentsMark = CONTROLLER_METHOD_ARGUMENTS_SIMPLE;
         } elseif (!$realInstanceCount) {
             if (!$defaultValues) {
                 $argumentsMark = CONTROLLER_METHOD_ARGUMENTS_SIMPLE;
