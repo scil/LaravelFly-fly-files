@@ -2,6 +2,7 @@
 /**
  * 1. Dict
  * 2. hack
+ * 3. getInstanceFromWorker
  */
 
 namespace Illuminate\Foundation;
@@ -85,7 +86,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     protected $namespace;
 
-    protected static $arrayAttriForObj = ['resolved', 'bindings', 'methodBindings', 'instances', 'aliases', 'abstractAliases', 'extenders', 'tags',  'contextual', 'reboundCallbacks', 'globalResolvingCallbacks', 'globalAfterResolvingCallbacks', 'resolvingCallbacks', 'afterResolvingCallbacks',
+    protected static $arrayAttriForObj = ['resolved', 'bindings', 'methodBindings', 'instances', 'aliases', 'abstractAliases', 'extenders', 'tags', 'contextual', 'reboundCallbacks', 'globalResolvingCallbacks', 'globalAfterResolvingCallbacks', 'resolvingCallbacks', 'afterResolvingCallbacks',
 
         // no refactor for coroutine
         // 'buildStack',
@@ -693,7 +694,7 @@ class Application extends \Illuminate\Container\Container implements Application
     {
 
         // hack  QUICK MAKE
-        if (isset(static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract]) ) {
+        if (isset(static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract])) {
             return static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract];
         }
 
@@ -705,6 +706,15 @@ class Application extends \Illuminate\Container\Container implements Application
         }
 
         return parent::make($abstract, $parameters);
+    }
+
+    public function getInstanceFromWorker($abstract)
+    {
+        $abstract = $this->getAlias($abstract);
+
+        if (isset(static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract])) {
+            return static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract];
+        }
     }
 
     /**
