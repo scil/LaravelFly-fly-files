@@ -2,7 +2,8 @@
 /**
  * 1 StaticDict. // inited in LaravelFly\Map\Illuminate\Database\DatabaseServiceProvider
  * 2.traitsBoots
- * 3.cloneBuilderCache and saveBuilderCache
+ * 3. ~~cloneBuilderCache and saveBuilderCache~~  no speed gained, why? closure? clone?
+ * 4. static $tableNames;
  */
 
 
@@ -985,6 +986,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $builder;
     }
 
+    // static $newQueryCache=[];
     /**
      * Get a new query builder for the model's table.
      *
@@ -992,16 +994,17 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQuery()
     {
-        static $cache = [];
+        return $this->registerGlobalScopes($this->newQueryWithoutScopes());
+
         $class = static::class;
-        if (isset($cache[$class])) {
-            return $this->cloneBuilderCache($cache[$class]);
+        if (isset(static::$newQueryCache[$class])) {
+            return $this->cloneBuilderCache(static::$newQueryCache[$class]);
         }
 
         return
             $this->saveBuilderCache(
                 $this->registerGlobalScopes($this->newQueryWithoutScopes())
-                , $cache, $class);
+                , static::$newQueryCache, $class);
 
         return $this->registerGlobalScopes($this->newQueryWithoutScopes());
 
@@ -1048,6 +1051,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         return $builder;
     }
 
+    // static $newQueryWithoutScopesCache=[];
     /**
      * Get a new query builder that doesn't have any global scopes.
      *
@@ -1055,18 +1059,20 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function newQueryWithoutScopes()
     {
+        return $this->newModelQuery()
+            ->with($this->with)
+            ->withCount($this->withCount);
 
-        static $cache = [];
         $class = static::class;
-        if (isset($cache[$class])) {
-            return $this->cloneBuilderCache($cache[$class]);
+        if (isset(static::$newQueryWithoutScopesCache[$class])) {
+            return $this->cloneBuilderCache(static::$newQueryWithoutScopesCache[$class]);
         }
 
         return $this->saveBuilderCache(
             $this->newModelQuery()
                 ->with($this->with)
                 ->withCount($this->withCount),
-            $cache,
+            static::$newQueryWithoutScopesCache,
             $class);
 
         return $this->newModelQuery()
@@ -1354,6 +1360,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         static::$resolver = null;
     }
 
+    static $tableNames;
     /**
      * Get the table associated with the model.
      *
@@ -1361,14 +1368,17 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function getTable()
     {
+        if(isset(static::$tableNames[static::class])){
+            return static::$tableNames[static::class];
+        }
+
         if (!isset($this->table)) {
-            // hack  add `$this->table`
-            return $this->table = str_replace(
+            return static::$tableNames[static::class] = $this->table = str_replace(
                 '\\', '', Str::snake(Str::plural(class_basename($this)))
             );
         }
 
-        return $this->table;
+        return static::$tableNames[static::class] = $this->table;
     }
 
     /**

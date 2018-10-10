@@ -13,7 +13,7 @@ trait ManagesLayouts
      *
      * @var mixed
      */
-    protected static $parentPlaceholder = [];
+    // protected static $parentPlaceholder = [];
 
     /**
      * Start injecting content into a section.
