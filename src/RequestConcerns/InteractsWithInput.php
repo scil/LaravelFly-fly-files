@@ -184,6 +184,7 @@ trait InteractsWithInput
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
 
+        // hack flyChangedForAll
         if ($dict['flyChangedForAll'] || (null === $dict['flyAll'])) {
             $dict['flyAll'] = $input = array_replace_recursive($this->input(), $this->allFiles());
             $dict['flyChangedForAll'] = false;

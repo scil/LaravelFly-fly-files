@@ -1,7 +1,10 @@
 <?php
 /**
  * 1. saveRelationshipCache , cloneRelationshipCache and cloneRelationshipCacheWithChild
+ *      result: no speed gained, key is `$this->addConstraints();`  how to improve it?
  * 2. a little other cache
+        static $joiningTableCache = [];
+        static $morphClassCache = [];
  */
 
 namespace Illuminate\Database\Eloquent\Concerns;
@@ -161,6 +164,7 @@ trait HasRelationships
     }
 
 
+    static $hasOneCache=[];
     /**
      * Define a one-to-one relationship.
      *
@@ -171,10 +175,9 @@ trait HasRelationships
      */
     public function hasOne($related, $foreignKey = null, $localKey = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$foreignKey-$localKey";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey]);
+        if (isset(static::$hasOneCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$hasOneCache[$cacheKey]);
         }
 
         $instance = $this->newRelatedInstance($related);
@@ -187,7 +190,7 @@ trait HasRelationships
         // why? because I can not hack this statement: $this->addConstraints();
         $clonedQuery = clone $query;
         $r = $this->newHasOne($query, $this, $instance->getTable() . '.' . $foreignKey, $localKey);
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$hasOneCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newHasOne($instance->newQuery(), $this, $instance->getTable() . '.' . $foreignKey, $localKey);
     }
@@ -206,6 +209,7 @@ trait HasRelationships
         return new HasOne($query, $parent, $foreignKey, $localKey);
     }
 
+    static  $morphOneCache=[];
     /**
      * Define a polymorphic one-to-one relationship.
      *
@@ -218,10 +222,9 @@ trait HasRelationships
      */
     public function morphOne($related, $name, $type = null, $id = null, $localKey = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$name-$type-$id-$localKey";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey], $this->newRelatedInstance($related));
+        if (isset(static::$morphOneCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$morphOneCache[$cacheKey], $this->newRelatedInstance($related));
         }
 
         $instance = $this->newRelatedInstance($related);
@@ -236,7 +239,7 @@ trait HasRelationships
         $query = $instance->newQuery();
         $clonedQuery = clone $query;
         $r = $this->newMorphOne($query, $this, $table . '.' . $type, $table . '.' . $id, $localKey);
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$morphOneCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newMorphOne($instance->newQuery(), $this, $table . '.' . $type, $table . '.' . $id, $localKey);
     }
@@ -256,6 +259,7 @@ trait HasRelationships
         return new MorphOne($query, $parent, $type, $id, $localKey);
     }
 
+    static $belongToCache;
     /**
      * Define an inverse one-to-one or many relationship.
      *
@@ -267,10 +271,9 @@ trait HasRelationships
      */
     public function belongsTo($related, $foreignKey = null, $ownerKey = null, $relation = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$foreignKey-$ownerKey-$related";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCacheWithChild($cache[$cacheKey]);
+        if (isset(static::$belongToCache[$cacheKey])) {
+            return $this->cloneRelationshipCacheWithChild(static::$belongToCache[$cacheKey]);
         }
         // If no relation name was given, we will use this debug backtrace to extract
         // the calling method's name and use that as the relationship name as most
@@ -298,7 +301,7 @@ trait HasRelationships
         $r = $this->newBelongsTo(
             $query, $this, $foreignKey, $ownerKey, $relation
         );
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$belongToCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newBelongsTo(
             $instance->newQuery(), $this, $foreignKey, $ownerKey, $relation
@@ -365,6 +368,7 @@ trait HasRelationships
         );
     }
 
+    static $morphInstanceToCache = [];
     /**
      * Define a polymorphic, inverse one-to-one or many relationship.
      *
@@ -377,10 +381,9 @@ trait HasRelationships
      */
     protected function morphInstanceTo($target, $name, $type, $id, $ownerKey)
     {
-        static $cache = [];
         $cacheKey = static::class . "$target-$name-$type-$id-$ownerKey";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCacheWithChild($cache[$cacheKey]);
+        if (isset(static::$morphInstanceToCache[$cacheKey])) {
+            return $this->cloneRelationshipCacheWithChild(static::$morphInstanceToCache[$cacheKey]);
         }
 
         $instance = $this->newRelatedInstance(
@@ -392,7 +395,7 @@ trait HasRelationships
         $r = $this->newMorphTo(
             $query, $this, $id, $ownerKey ?? $instance->getKeyName(), $type, $name
         );
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$morphInstanceToCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newMorphTo(
             $instance->newQuery(), $this, $id, $ownerKey ?? $instance->getKeyName(), $type, $name
@@ -426,6 +429,7 @@ trait HasRelationships
         return Arr::get(Relation::morphMap() ?: [], $class, $class);
     }
 
+    static $guessBelongsToRelationCache = [];
     /**
      * Guess the "belongs to" relationship name.
      *
@@ -433,19 +437,19 @@ trait HasRelationships
      */
     protected function guessBelongsToRelation()
     {
-        static $cache = [];
-        $cacheKey = static::class;
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
+        $cacheKey= static::class;
+        if (isset(static::$guessBelongsToRelationCache[$cacheKey])) {
+            return static::$guessBelongsToRelationCache[$cacheKey];
         }
 
         list($one, $two, $caller) = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
 
-        return $cache[$cacheKey] = $caller['function'];
+        return static::$guessBelongsToRelationCache[$cacheKey] = $caller['function'];
 
         return $caller['function'];
     }
 
+    static $hasManyCache=[];
     /**
      * Define a one-to-many relationship.
      *
@@ -456,10 +460,9 @@ trait HasRelationships
      */
     public function hasMany($related, $foreignKey = null, $localKey = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$foreignKey-$localKey";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey]);
+        if (isset(static::$hasManyCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$hasManyCache[$cacheKey]);
         }
 
         $instance = $this->newRelatedInstance($related);
@@ -473,7 +476,7 @@ trait HasRelationships
         $r = $this->newHasMany(
             $query, $this, $instance->getTable() . '.' . $foreignKey, $localKey
         );
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$hasManyCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newHasMany(
             $instance->newQuery(), $this, $instance->getTable() . '.' . $foreignKey, $localKey
@@ -538,6 +541,7 @@ trait HasRelationships
         return new HasManyThrough($query, $farParent, $throughParent, $firstKey, $secondKey, $localKey, $secondLocalKey);
     }
 
+    static $morphManyCache=[];
     /**
      * Define a polymorphic one-to-many relationship.
      *
@@ -550,10 +554,9 @@ trait HasRelationships
      */
     public function morphMany($related, $name, $type = null, $id = null, $localKey = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$name-$type-$id-$localKey";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey]);
+        if (isset(static::$morphManyCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$morphManyCache[$cacheKey]);
         }
 
         $instance = $this->newRelatedInstance($related);
@@ -570,7 +573,7 @@ trait HasRelationships
         $query = $instance->newQuery();
         $clonedQuery = clone $query;
         $r = $this->newMorphMany($query, $this, $table . '.' . $type, $table . '.' . $id, $localKey);
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$morphManyCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newMorphMany($instance->newQuery(), $this, $table . '.' . $type, $table . '.' . $id, $localKey);
     }
@@ -590,6 +593,7 @@ trait HasRelationships
         return new MorphMany($query, $parent, $type, $id, $localKey);
     }
 
+    static $belongsToManyCache = [];
     /**
      * Define a many-to-many relationship.
      *
@@ -605,10 +609,9 @@ trait HasRelationships
     public function belongsToMany($related, $table = null, $foreignPivotKey = null, $relatedPivotKey = null,
                                   $parentKey = null, $relatedKey = null, $relation = null)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$table-$foreignPivotKey-$relatedPivotKey-$parentKey-$relatedKey-$relation";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey]);
+        if (isset(static::$belongsToManyCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$belongsToManyCache[$cacheKey]);
         }
 
         // If no relationship name was passed, we will pull backtraces to get the
@@ -642,7 +645,7 @@ trait HasRelationships
             $relatedPivotKey, $parentKey ?: $this->getKeyName(),
             $relatedKey ?: $instance->getKeyName(), $relation
         );
-        return $this->saveRelationshipCache($cache, $cacheKey,  $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$belongsToManyCache, $cacheKey,  $clonedQuery, $r);
 
         return $this->newBelongsToMany(
             $instance->newQuery(), $this, $table, $foreignPivotKey,
@@ -670,6 +673,7 @@ trait HasRelationships
         return new BelongsToMany($query, $parent, $table, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey, $relationName);
     }
 
+    static $morphToManyCache = [];
     /**
      * Define a polymorphic many-to-many relationship.
      *
@@ -687,10 +691,9 @@ trait HasRelationships
                                 $relatedPivotKey = null, $parentKey = null,
                                 $relatedKey = null, $inverse = false)
     {
-        static $cache = [];
         $cacheKey = static::class . "$related-$name-$table-$foreignPivotKey-$relatedPivotKey-$parentKey-$relatedKey-$inverse";
-        if (isset($cache[$cacheKey])) {
-            return $this->cloneRelationshipCache($cache[$cacheKey]);
+        if (isset(static::$morphToManyCache[$cacheKey])) {
+            return $this->cloneRelationshipCache(static::$morphToManyCache[$cacheKey]);
         }
 
 
@@ -718,7 +721,7 @@ trait HasRelationships
             $foreignPivotKey, $relatedPivotKey, $parentKey ?: $this->getKeyName(),
             $relatedKey ?: $instance->getKeyName(), $caller, $inverse
         );
-        return $this->saveRelationshipCache($cache, $cacheKey, $clonedQuery, $r);
+        return $this->saveRelationshipCache(static::$morphToManyCache, $cacheKey, $clonedQuery, $r);
 
         return $this->newMorphToMany(
             $instance->newQuery(), $this, $name, $table,
@@ -792,6 +795,7 @@ trait HasRelationships
         return !is_null($caller) ? $caller['function'] : null;
     }
 
+    static $joiningTableCache = [];
     /**
      * Get the joining table name for a many-to-many relation.
      *
@@ -800,10 +804,9 @@ trait HasRelationships
      */
     public function joiningTable($related)
     {
-        static $cache = [];
         $cacheKey = static::class . $related;
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
+        if (isset(static::$joiningTableCache[$cacheKey])) {
+            return static::$joiningTableCache[$cacheKey];
         }
 
         // The joining table name, by convention, is simply the snake cased models
@@ -819,7 +822,7 @@ trait HasRelationships
         // which is typically used by convention within the database system.
         sort($models);
 
-        return $cache[$cacheKey] = strtolower(implode('_', $models));
+        return static::$joiningTableCache[$cacheKey] = strtolower(implode('_', $models));
 
         return strtolower(implode('_', $models));
     }
@@ -870,6 +873,7 @@ trait HasRelationships
         return [$type ?: $name . '_type', $id ?: $name . '_id'];
     }
 
+    static $morphClassCache = [];
     /**
      * Get the class name for polymorphic relations.
      *
@@ -877,19 +881,18 @@ trait HasRelationships
      */
     public function getMorphClass()
     {
-        static $cache = [];
         $cacheKey = static::class;
-        if (isset($cache[$cacheKey])) {
-            return $cache[$cacheKey];
+        if (isset(static::$morphClassCache[$cacheKey])) {
+            return static::$morphClassCache[$cacheKey];
         }
 
         $morphMap = Relation::morphMap();
 
         if (!empty($morphMap) && in_array(static::class, $morphMap)) {
-            return $cache[$cacheKey] = array_search(static::class, $morphMap, true);
+            return static::$morphClassCache[$cacheKey] = array_search(static::class, $morphMap, true);
         }
 
-        return $cache[$cacheKey] = static::class;
+        return static::$morphClassCache[$cacheKey] = static::class;
     }
 
     /**
