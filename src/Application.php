@@ -35,7 +35,7 @@ class Application extends \Illuminate\Container\Container implements Application
      *
      * @var string
      */
-    const VERSION = '5.6.38';
+    const VERSION = '5.6.39';
 
     /**
      * The base path for the Laravel installation.
