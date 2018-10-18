@@ -116,7 +116,10 @@ class PendingDispatch
     public function __destruct()
     {
         if ($this->job->isSwooleFirst()) {
-            static::$swooleServer->task($this->job);
+            static::$swooleServer->task([
+                'type'=>'job',
+                'value'=> $this->job,
+            ]);
         } else {
             app(Dispatcher::class)->dispatch($this->job);
         }
