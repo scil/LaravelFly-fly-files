@@ -118,7 +118,7 @@ class PendingDispatch
         if ($this->job->isSwooleFirst()) {
             static::$swooleServer->task([
                 'type'=>'job',
-                'value'=> $this->job,
+                'object'=> $this->job,
             ]);
         } else {
             app(Dispatcher::class)->dispatch($this->job);
