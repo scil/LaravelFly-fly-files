@@ -369,19 +369,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
         return $this;
     }
 
-    /**
-     * This method belongs to Symfony HttpFoundation and is not usually needed when using Laravel.
-     *
-     * Instead, you may use the "input" method.
-     *
-     * @param  string $key
-     * @param  mixed $default
-     * @return mixed
-     */
-    public function get($key, $default = null)
-    {
-        return parent::get($key, $default);
-    }
 
     /**
      * Get the JSON payload for the request.
@@ -433,19 +420,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
         $dict = static::$corDict[\Swoole\Coroutine::getuid()];
 
         return in_array($this->getRealMethod(), ['GET', 'HEAD']) ? $dict['query'] : $dict['request'];
-    }
-
-    /**
-     * Create a new request instance from the given Laravel request.
-     *
-     * @param  \Illuminate\Http\Request $from
-     * @param  \Illuminate\Http\Request|null $to
-     * @return static
-     */
-    public static function createFrom(self $from, $to = null)
-    {
-        throw new SingletonRequestException();
-        static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
     }
 
     /**
@@ -507,18 +481,11 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
             throw new RuntimeException('Session store not set on request.');
         }
 
+  return $this->getSession();
+
         return static::$corDict[\Swoole\Coroutine::getuid()]['session'];
     }
 
-    /**
-     * Get the session associated with the request.
-     *
-     * @return \Illuminate\Session\Store|null
-     */
-    public function getSession()
-    {
-        return static::$corDict[\Swoole\Coroutine::getuid()]['session'];
-    }
 
     /**
      * Set the session instance on the request.
