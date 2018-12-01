@@ -695,7 +695,8 @@ class Application extends \Illuminate\Container\Container implements Application
     {
 
         // hack  QUICK MAKE
-        if (isset(static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract])) {
+        if (LARAVELFLY_SERVICES['no_contextual_binding_for_worker_services'] &&
+            isset(static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract])) {
             return static::$corDict[WORKER_COROUTINE_ID]['instances'][$abstract];
         }
 
