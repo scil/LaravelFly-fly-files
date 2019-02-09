@@ -35,7 +35,7 @@ class Application extends \Illuminate\Container\Container implements Application
      *
      * @var string
      */
-    const VERSION = '5.6.39';
+    const VERSION = '5.7.25';
 
     /**
      * The base path for the Laravel installation.
@@ -43,6 +43,14 @@ class Application extends \Illuminate\Container\Container implements Application
      * @var string
      */
     protected $basePath;
+    
+    /**
+     * The custom application path defined by the developer.
+     *
+     * @var string
+     */
+    protected $appPath;
+
 
     /**
      * The custom database path defined by the developer.
@@ -165,11 +173,11 @@ class Application extends \Illuminate\Container\Container implements Application
         static::$corDict[$cid]['hasBeenBootstrapped'] = true;
 
         foreach ($bootstrappers as $bootstrapper) {
-            $this['events']->fire('bootstrapping: ' . $bootstrapper, [$this]);
+            $this['events']->dispatch('bootstrapping: '.$bootstrapper, [$this]);
 
             $this->make($bootstrapper)->bootstrap($this);
 
-            $this['events']->fire('bootstrapped: ' . $bootstrapper, [$this]);
+            $this['events']->dispatch('bootstrapped: '.$bootstrapper, [$this]);
         }
     }
 
@@ -256,12 +264,31 @@ class Application extends \Illuminate\Container\Container implements Application
     /**
      * Get the path to the application "app" directory.
      *
-     * @param  string $path Optionally, a path to append to the app path
+     * @param  string $path 
      * @return string
      */
     public function path($path = '')
     {
-        return $this->basePath . DIRECTORY_SEPARATOR . 'app' . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+        $appPath = $this->appPath ?: $this->basePath.DIRECTORY_SEPARATOR.'app';
+
+        return $appPath.($path ? DIRECTORY_SEPARATOR.$path : $path);
+
+    }
+
+
+    /**
+     * Set the application directory.
+     *
+     * @param  string  $path
+     * @return $this
+     */
+    public function useAppPath($path)
+    {
+        $this->appPath = $path;
+
+        $this->instance('path', $path);
+
+        return $this;
     }
 
     /**
@@ -458,7 +485,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function isLocal()
     {
-        return $this['env'] == 'local';
+        return $this['env'] === 'local';
     }
 
     /**
@@ -481,6 +508,10 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function runningInConsole()
     {
+        if (isset($_ENV['APP_RUNNING_IN_CONSOLE'])) {
+            return $_ENV['APP_RUNNING_IN_CONSOLE'] === 'true';
+        }
+
         return php_sapi_name() === 'cli' || php_sapi_name() === 'phpdbg';
     }
 
@@ -516,11 +547,10 @@ class Application extends \Illuminate\Container\Container implements Application
      * Register a service provider with the application.
      *
      * @param  \Illuminate\Support\ServiceProvider|string $provider
-     * @param  array $options
      * @param  bool $force
      * @return \Illuminate\Support\ServiceProvider
      */
-    public function register($provider, $options = [], $force = false)
+    public function register($provider, $force = false)
     {
         $cid = \Co::getUid();
         if (($registered = $this->getProvider($provider)) && !$force) {
@@ -846,7 +876,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function getCachedServicesPath()
     {
-        return $this->bootstrapPath() . '/cache/services.php';
+        return $_ENV['APP_SERVICES_CACHE'] ?? $this->bootstrapPath().'/cache/services.php';
     }
 
     /**
@@ -856,7 +886,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function getCachedPackagesPath()
     {
-        return $this->bootstrapPath() . '/cache/packages.php';
+        return $_ENV['APP_PACKAGES_CACHE'] ?? $this->bootstrapPath().'/cache/packages.php';
     }
 
     /**
@@ -876,7 +906,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function getCachedConfigPath()
     {
-        return $this->bootstrapPath() . '/cache/config.php';
+        return $_ENV['APP_CONFIG_CACHE'] ?? $this->bootstrapPath().'/cache/config.php';
     }
 
     /**
@@ -896,7 +926,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function getCachedRoutesPath()
     {
-        return $this->bootstrapPath() . '/cache/routes.php';
+        return $_ENV['APP_ROUTES_CACHE'] ?? $this->bootstrapPath().'/cache/routes.php';
     }
 
     /**

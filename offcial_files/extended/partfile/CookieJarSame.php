@@ -33,7 +33,7 @@ return $this->queued;
 ===A===
 
 {
-use InteractsWithTime;
+use InteractsWithTime, Macroable;
 
 /**
 * The default path (if specified).

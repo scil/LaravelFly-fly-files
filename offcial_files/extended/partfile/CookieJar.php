@@ -8,7 +8,7 @@ protected function getPathAndDomain($path, $domain, $secure = null, $sameSite = 
 
 public function setDefaultPathAndDomain($path, $domain, $secure = false, $sameSite = null)
 {
-list($this->path, $this->domain, $this->secure, $this->sameSite) = [$path, $domain, $secure, $sameSite];
+[$this->path, $this->domain, $this->secure, $this->sameSite] = [$path, $domain, $secure, $sameSite];
 
 return $this;
 }
@@ -18,7 +18,7 @@ return $this;
 
 
 {
-use InteractsWithTime;
+use InteractsWithTime, Macroable;
 
 /**
 * The default path (if specified).
