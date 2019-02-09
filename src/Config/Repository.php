@@ -72,7 +72,7 @@ class Repository implements ArrayAccess, ConfigContract
 
         foreach ($keys as $key => $default) {
             if (is_numeric($key)) {
-                list($key, $default) = [$default, null];
+                [$key, $default] = [$default, null];
             }
 
             $config[$key] = Arr::get(static::$corDict[\Co::getUid()]['items'], $key, $default);
