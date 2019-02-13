@@ -1602,7 +1602,7 @@ class Request
             $server->remove('IIS_WasUrlRewritten');
         } elseif ($server->has('REQUEST_URI')) {
             $requestUri = $server->get('REQUEST_URI');
-            
+
             if ('' !== $requestUri && '/' === $requestUri[0]) {
                 // To only use path and query remove the fragment.
                 if (false !== $pos = strpos($requestUri, '#')) {
@@ -1621,7 +1621,7 @@ class Request
                     $requestUri .= '?'.$uriComponents['query'];
                 }
             }
-            
+
         } elseif ($server->has('ORIG_PATH_INFO')) {
             // IIS 5.0, PHP as CGI
             $requestUri = $server->get('ORIG_PATH_INFO');
