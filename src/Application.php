@@ -35,7 +35,7 @@ class Application extends \Illuminate\Container\Container implements Application
      *
      * @var string
      */
-    const VERSION = '5.7.25';
+    const VERSION = '5.7.28';
 
     /**
      * The base path for the Laravel installation.
@@ -164,7 +164,7 @@ class Application extends \Illuminate\Container\Container implements Application
     /**
      * Run the given array of bootstrap classes.
      *
-     * @param  array $bootstrappers
+     * @param  string[]  $bootstrappers
      * @return void
      */
     public function bootstrapWith(array $bootstrappers)
@@ -814,7 +814,7 @@ class Application extends \Illuminate\Container\Container implements Application
     /**
      * Register a new boot listener.
      *
-     * @param  mixed $callback
+     * @param  callable  $callback
      * @return void
      */
     public function booting($callback)
@@ -825,7 +825,7 @@ class Application extends \Illuminate\Container\Container implements Application
     /**
      * Register a new "booted" listener.
      *
-     * @param  mixed $callback
+     * @param  callable  $callback
      * @return void
      */
     public function booted($callback)
@@ -840,7 +840,7 @@ class Application extends \Illuminate\Container\Container implements Application
     /**
      * Call the booting callbacks for the application.
      *
-     * @param  array $callbacks
+     * @param  callable[]  $callbacks
      * @return void
      */
     protected function fireAppCallbacks(array $callbacks)
