@@ -76,8 +76,8 @@ protected $queued = [];
 * @param  string       $name
 * @param  string       $value
 * @param  int          $minutes
-* @param  string       $path
-* @param  string       $domain
+* @param  string|null       $path
+* @param  string|null       $domain
 * @param  bool|null    $secure
 * @param  bool         $httpOnly
 * @param  bool         $raw

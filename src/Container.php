@@ -26,7 +26,7 @@ class Container implements ArrayAccess, ContainerContract
     /**
      * The contextual binding map.
      *
-     * @var array
+     * @var array[]
      */
     //todo why public?
 //    public $contextual = [];
@@ -39,7 +39,18 @@ class Container implements ArrayAccess, ContainerContract
 
     ];
 
+    /**
+     * The stack of concretions currently being built.
+     *
+     * @var array[]
+     */
     protected $buildStack = [];
+
+    /**
+     * The parameter override stack.
+     *
+     * @var array[]
+     */
     protected $with = [];
 
 
@@ -182,7 +193,9 @@ class Container implements ArrayAccess, ContainerContract
                 return $container->build($concrete);
             }
 
-            return $container->make($concrete, $parameters);
+            return $container->resolve(
+                $concrete, $parameters, $raiseEvents = false
+            );
         };
     }
 
@@ -382,21 +395,22 @@ class Container implements ArrayAccess, ContainerContract
      * Resolve all of the bindings for a given tag.
      *
      * @param  string $tag
-     * @return array
+     * @return iterable
      */
     public function tagged($tag)
     {
-        $results = [];
-
-        $cid = \Co::getUid();
-
-        if (isset(static::$corDict[$cid]['tags'][$tag])) {
-            foreach (static::$corDict[$cid]['tags'][$tag] as $abstract) {
-                $results[] = $this->make($abstract);
-            }
+        $tags = static::$corDict[\Co::getUid()]['tags'];
+        
+        if (! isset($tags[$tag])) {
+            return [];
         }
 
-        return $results;
+        return new RewindableGenerator(function () use ($tag) {
+            foreach ($tags[$tag] as $abstract) {
+                yield $this->make($abstract);
+            }
+        }, count($tags[$tag]));
+        
     }
 
     /**
@@ -405,9 +419,15 @@ class Container implements ArrayAccess, ContainerContract
      * @param  string $abstract
      * @param  string $alias
      * @return void
+     *
+     * @throws \LogicException
      */
     public function alias($abstract, $alias)
     {
+      if ($alias === $abstract) {
+            throw new LogicException("[{$abstract}] is aliased to itself.");
+        }
+        
         $cid = \Co::getUid();
 
         static::$corDict[$cid]['aliases'][$alias] = $abstract;
@@ -469,11 +489,7 @@ class Container implements ArrayAccess, ContainerContract
      */
     protected function getReboundCallbacks($abstract, $cid)
     {
-        if (isset(static::$corDict[$cid]['reboundCallbacks'][$abstract])) {
-            return static::$corDict[$cid]['reboundCallbacks'][$abstract];
-        }
-
-        return [];
+        return static::$corDict[$cid]['reboundCallbacks'][$abstract] ?? [];
     }
 
     /**
@@ -534,10 +550,12 @@ class Container implements ArrayAccess, ContainerContract
      * @param  string $abstract
      * @param  array $parameters
      * @return mixed
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function make($abstract, array $parameters = [])
     {
-        return $this->resolve($abstract, \Co::getUid(), $parameters);
+        return $this->resolve($abstract, $parameters);
     }
 
     /**
@@ -546,7 +564,7 @@ class Container implements ArrayAccess, ContainerContract
     public function get($id)
     {
         try {
-            return $this->resolve($id, \Swoole\Coroutine::getuid());
+            return $this->resolve($id);
         } catch (Exception $e) {
             if ($this->has($id)) {
                 throw $e;
@@ -561,11 +579,16 @@ class Container implements ArrayAccess, ContainerContract
      *
      * @param  string $abstract
      * @param  array $parameters
+     * @param  bool   $raiseEvents
      * @return mixed
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
-    protected function resolve($abstract, $cid, $parameters = [])
+    protected function resolve($abstract, $parameters = [], $raiseEvents = true)
     {
         $abstract = $this->getAlias($abstract);
+        
+        $cid = \Co::getUid();
 
         $needsContextualBuild = !empty($parameters) || !is_null(
                 $this->getContextualConcrete($abstract, $cid)
@@ -605,7 +628,9 @@ class Container implements ArrayAccess, ContainerContract
             static::$corDict[$cid]['instances'][$abstract] = $object;
         }
 
-        $this->fireResolvingCallbacks($abstract, $object, $cid);
+        if ($raiseEvents) {
+	     $this->fireResolvingCallbacks($abstract, $object, $cid);
+        }
 
         // Before returning, we will also set the resolved flag to "true" and pop off
         // the parameter overrides for this build. After those two things are done
@@ -643,7 +668,7 @@ class Container implements ArrayAccess, ContainerContract
      * Get the contextual concrete binding for the given abstract.
      *
      * @param  string $abstract
-     * @return string|null
+     * @return \Closure|string|null
      */
     protected function getContextualConcrete($abstract, $cid)
     {
@@ -669,10 +694,11 @@ class Container implements ArrayAccess, ContainerContract
      * Find the concrete binding for the given abstract in the contextual binding array.
      *
      * @param  string $abstract
-     * @return string|null
+     * @return \Closure|string|null
      */
     protected function findInContextualBindings($abstract, $cid)
     {
+    	
         if (isset(static::$corDict[$cid]['contextual'][end($this->buildStack)][$abstract])) {
             return static::$corDict[$cid]['contextual'][end($this->buildStack)][$abstract];
         }
@@ -750,6 +776,8 @@ class Container implements ArrayAccess, ContainerContract
      *
      * @param  array $dependencies
      * @return array
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     protected function resolveDependencies(array $dependencies, $cid)
     {
@@ -1024,8 +1052,7 @@ class Container implements ArrayAccess, ContainerContract
      *
      * @param  string $abstract
      * @return string
-     *
-     * @throws \LogicException
+
      */
     public function getAlias($abstract)
     {
@@ -1035,9 +1062,6 @@ class Container implements ArrayAccess, ContainerContract
             return $abstract;
         }
 
-        if (static::$corDict[$cid]['aliases'][$abstract] === $abstract) {
-            throw new LogicException("[{$abstract}] is aliased to itself.");
-        }
 
         return $this->getAlias(static::$corDict[$cid]['aliases'][$abstract]);
     }
@@ -1052,11 +1076,8 @@ class Container implements ArrayAccess, ContainerContract
     {
         $abstract = $this->getAlias($abstract);
 
-        if (isset(static::$corDict[$cid]['extenders'][$abstract])) {
-            return static::$corDict[$cid]['extenders'][$abstract];
-        }
+        return static::$corDict[$cid]['extenders'][$abstract] ?? [];
 
-        return [];
     }
 
     /**

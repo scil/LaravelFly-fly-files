@@ -1100,23 +1100,37 @@ class Request
     public function getMethod()
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
-        if (null === $dict['method']) {
-            // todo
-            $dict['method'] = strtoupper($dict['server']->get('REQUEST_METHOD', 'GET'));
+        
+        if (null !== $dict['method']) {
+        	return $dict['method'];
+        }
+        // todo
+        $dict['method'] = strtoupper($dict['server']->get('REQUEST_METHOD', 'GET'));
 
-            if ('POST' === $dict['method']) {
-                if ($method = $dict['headers']->get('X-HTTP-METHOD-OVERRIDE')) {
-                    $dict['method'] = strtoupper($method);
-                } elseif (self::$httpMethodParameterOverride) {
-                    $method = $dict['request']->get('_method', $dict['query']->get('_method', 'POST'));
-                    if (\is_string($method)) {
-                        $dict['method'] = strtoupper($method);
-                    }
-                }
-            }
+        if ('POST' !== $dict['method']) {
+        	return $dict['method'];
+    	}
+        	
+       $method = $dict['headers']->get('X-HTTP-METHOD-OVERRIDE');
+       	   
+       if (!$method && self::$httpMethodParameterOverride) {
+            $method = $dict['request']->get('_method', $dict['query']->get('_method', 'POST'));
+       }
+       if (!\is_string($method)) {
+        	return $dict['method'];
+        }
+        
+	$method = strtoupper($method);        
+        if (\in_array($method, ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'PATCH', 'PURGE', 'TRACE'], true)) {
+            return $dict['method'] = $method;
         }
 
-        return $dict['method'];
+        if (!preg_match('/^[A-Z]++$/D', $method)) {
+            throw new SuspiciousOperationException(sprintf('Invalid method override "%s".', $method));
+        }
+
+        return $dict['method'] = $method;
+
     }
 
     /**
@@ -1218,7 +1232,7 @@ class Request
      *
      * @param string|null $default The default format
      *
-     * @return string The request format
+     * @return string|null The request format
      */
     public function getRequestFormat($default = 'html')
     {

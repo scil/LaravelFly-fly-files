@@ -55,18 +55,24 @@ protected $sameSite;
 */
 protected $queued = [];
 
+
+
+===A===
+
+
 /**
 * Create a new cookie instance.
 *
 * @param  string       $name
 * @param  string       $value
 * @param  int          $minutes
-* @param  string       $path
-* @param  string       $domain
+* @param  string|null  $path
+* @param  string|null  $domain
 * @param  bool|null    $secure
 * @param  bool         $httpOnly
 * @param  bool         $raw
 * @param  string|null  $sameSite
 * @return \Symfony\Component\HttpFoundation\Cookie
 */
+
 public function make($name, $value, $minutes = 0, $path = null, $domain = null, $secure = null, $httpOnly = true, $raw = false, $sameSite = null)

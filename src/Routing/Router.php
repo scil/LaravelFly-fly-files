@@ -347,9 +347,7 @@ class Router implements RegistrarContract, BindingRegistrar
         if ($routes instanceof Closure) {
             $routes($this);
         } else {
-            $router = $this;
-
-            require $routes;
+            (new RouteFileRegistrar($this))->register($routes);
         }
     }
 

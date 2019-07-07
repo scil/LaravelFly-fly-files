@@ -17,15 +17,11 @@ public function get($key, array $replace = [], $locale = null, $fallback = true)
             break;
         }
     }
+        // If the line doesn't exist, we will return back the key which was requested as
+        // that will be quick to spot in the UI if language keys are wrong or missing
+        // from the application's language files. Otherwise we can return the line.
+        return $line ?? $key;
 
-    // If the line doesn't exist, we will return back the key which was requested as
-    // that will be quick to spot in the UI if language keys are wrong or missing
-    // from the application's language files. Otherwise we can return the line.
-    if (isset($line)) {
-        return $line;
-    }
-
-    return $key;
 }
 
 

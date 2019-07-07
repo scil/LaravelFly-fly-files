@@ -223,7 +223,6 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      */
     public function is(...$patterns)
     {
-        // hack
         $path = $this->decodedPath();
 
         foreach ($patterns as $pattern) {
@@ -311,19 +310,14 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the client IP address.
      *
-     * @return string
+     * @return string|null
      */
     public function ip()
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
 
-        if (null === $dict['flyIp']) {
-            return $dict['flyIp'] = $this->getClientIp();
-        }
+        return $dict['flyIp'] ?? ( $dict['flyIp'] = $this->getClientIp() );
 
-        return $dict['flyIp'];
-
-        return $this->getClientIp();
     }
 
     /**
@@ -358,7 +352,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      * Merge new input into the current request's input array.
      *
      * @param  array $input
-     * @return \Illuminate\Http\Request
+     * @return $this
      */
     public function merge(array $input)
     {
@@ -372,7 +366,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      * Replace the input for the current request.
      *
      * @param  array $input
-     * @return \Illuminate\Http\Request
+     * @return $this
      */
     public function replace(array $input)
     {
@@ -399,7 +393,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     /**
      * Get the JSON payload for the request.
      *
-     * @param  string $key
+     * @param  string|null  $key
      * @param  mixed $default
      * @return \Symfony\Component\HttpFoundation\ParameterBag|mixed
      */
@@ -465,7 +459,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      * Create an Illuminate request from a Symfony instance.
      *
      * @param  \Symfony\Component\HttpFoundation\Request $request
-     * @return \Illuminate\Http\Request
+     * @return static
      */
     public static function createFromBase(SymfonyRequest $request)
     {

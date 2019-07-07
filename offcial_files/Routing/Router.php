@@ -122,7 +122,7 @@ class Router implements RegistrarContract, BindingRegistrar
      * Create a new Router instance.
      *
      * @param  \Illuminate\Contracts\Events\Dispatcher  $events
-     * @param  \Illuminate\Container\Container  $container
+     * @param  \Illuminate\Container\Container|null  $container
      * @return void
      */
     public function __construct(Dispatcher $events, Container $container = null)
@@ -413,9 +413,7 @@ class Router implements RegistrarContract, BindingRegistrar
         if ($routes instanceof Closure) {
             $routes($this);
         } else {
-            $router = $this;
-
-            require $routes;
+            (new RouteFileRegistrar($this))->register($routes);
         }
     }
 
@@ -593,7 +591,7 @@ class Router implements RegistrarContract, BindingRegistrar
      * Return the response returned by the given route.
      *
      * @param  string  $name
-     * @return mixed
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
     public function respondWithRoute($name)
     {
@@ -619,7 +617,7 @@ class Router implements RegistrarContract, BindingRegistrar
      * Dispatch the request to a route and return the response.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return mixed
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
     public function dispatchToRoute(Request $request)
     {
@@ -646,7 +644,7 @@ class Router implements RegistrarContract, BindingRegistrar
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Illuminate\Routing\Route  $route
-     * @return mixed
+     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
     protected function runRoute(Request $request, Route $route)
     {
@@ -763,6 +761,8 @@ class Router implements RegistrarContract, BindingRegistrar
      *
      * @param  \Illuminate\Routing\Route  $route
      * @return \Illuminate\Routing\Route
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function substituteBindings($route)
     {
@@ -780,6 +780,8 @@ class Router implements RegistrarContract, BindingRegistrar
      *
      * @param  \Illuminate\Routing\Route  $route
      * @return void
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function substituteImplicitBindings($route)
     {
@@ -793,6 +795,8 @@ class Router implements RegistrarContract, BindingRegistrar
      * @param  string  $value
      * @param  \Illuminate\Routing\Route  $route
      * @return mixed
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     protected function performBinding($key, $value, $route)
     {
@@ -930,8 +934,6 @@ class Router implements RegistrarContract, BindingRegistrar
      * @param  string  $class
      * @param  \Closure|null  $callback
      * @return void
-     *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function model($key, $class, Closure $callback = null)
     {
@@ -1010,7 +1012,7 @@ class Router implements RegistrarContract, BindingRegistrar
      * Get a route parameter for the current route.
      *
      * @param  string  $key
-     * @param  string  $default
+     * @param  string|null  $default
      * @return mixed
      */
     public function input($key, $default = null)

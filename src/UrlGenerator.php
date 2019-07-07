@@ -45,7 +45,7 @@ class UrlGenerator implements UrlGeneratorContract
 
         'forcedRoot' => null,'cachedRoot' => null,
 
-        'forceScheme' => null,  'cachedSchema' => null, 'rootNamespace' => null,
+        'forceScheme' => null,  'cachedScheme' => null, 'rootNamespace' => null,
 
     ];
 
@@ -89,7 +89,7 @@ class UrlGenerator implements UrlGeneratorContract
      *
      * @param  \Illuminate\Routing\RouteCollection $routes
      * @param  \Illuminate\Http\Request $request
-     * @param  string  $assetRoot
+     * @param  string|null  $assetRoot
      * @return void
      */
     public function __construct(RouteCollection $routes, Request $request, $assetRoot = null)
@@ -287,11 +287,11 @@ class UrlGenerator implements UrlGeneratorContract
 
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
 
-        if (is_null($dict['cachedSchema'])) {
-            $dict['cachedSchema'] = $dict['forceScheme'] ?: $this->request->getScheme() . '://';
+        if (is_null($dict['cachedScheme'])) {
+            $dict['cachedScheme'] = $dict['forceScheme'] ?: $this->request->getScheme() . '://';
         }
 
-        return $dict['cachedSchema'];
+        return $dict['cachedScheme'];
     }
 
     /**
@@ -299,7 +299,7 @@ class UrlGenerator implements UrlGeneratorContract
      *
      * @param  string $name
      * @param  array $parameters
-     * @param  \DateTimeInterface|\DateInterval|int  $expiration
+     * @param  \DateTimeInterface|\DateInterval|int|null  $expiration
      * @param  bool  $absolute
      * @return string
      */
@@ -473,7 +473,7 @@ class UrlGenerator implements UrlGeneratorContract
      * Get the base URL for the request.
      *
      * @param  string $scheme
-     * @param  string $root
+     * @param  string|null  $root
      * @return string
      */
     public function formatRoot($scheme, $root = null)
@@ -576,7 +576,7 @@ class UrlGenerator implements UrlGeneratorContract
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
 
-        $dict['cachedSchema'] = null;
+        $dict['cachedScheme'] = null;
 
         $dict['forceScheme'] = $scheme . '://';
     }
@@ -655,7 +655,7 @@ class UrlGenerator implements UrlGeneratorContract
 
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
         $dict['cachedRoot'] = null;
-        $dict['cachedSchema'] = null;
+        $dict['cachedScheme'] = null;
 
         /**
          * hack

@@ -15,13 +15,13 @@ class FileViewFinder implements ViewFinderInterface
 
 
     protected $files;
-    protected $extensions = ['blade.php', 'php', 'css'];
+    protected $extensions = ['blade.php', 'php', 'css', 'html'];
 
     public function __construct(Filesystem $files, array $paths, array $extensions = null)
     {
         $this->initOnWorker(true);
 
-        static::$corDict[WORKER_COROUTINE_ID]['paths'] = $paths;
+        static::$corDict[WORKER_COROUTINE_ID]['paths'] = array_map([$this, 'resolvePath'], $paths);  
         $this->files = $files;
         if (isset($extensions)) {
             $this->extensions = $extensions;
@@ -121,7 +121,7 @@ class FileViewFinder implements ViewFinderInterface
      */
     public function addLocation($location)
     {
-        static::$corDict[\Co::getUid()]['paths'][] = $location;
+        static::$corDict[\Co::getUid()]['paths'][] = $this->resolvePath($location);
     }
 
     /**
@@ -132,7 +132,17 @@ class FileViewFinder implements ViewFinderInterface
      */
     public function prependLocation($location)
     {
-        array_unshift(static::$corDict[\Co::getUid()]['paths'], $location);
+        array_unshift(static::$corDict[\Co::getUid()]['paths'], $this->resolvePath($location));
+    }
+    /**
+     * Resolve the path.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    protected function resolvePath($path)
+    {
+        return realpath($path) ?: $path;
     }
 
     /**
@@ -233,7 +243,18 @@ class FileViewFinder implements ViewFinderInterface
     {
         return $this->files;
     }
+    /**
+     * Set the active view paths.
+     *
+     * @param  array  $paths
+     * @return $this
+     */
+    public function setPaths($paths)
+    {
+        static::$corDict[\Co::getUid()]['paths'] = $paths;
 
+        return $this;
+    }
     /**
      * Get the active view paths.
      *
@@ -243,7 +264,15 @@ class FileViewFinder implements ViewFinderInterface
     {
         return static::$corDict[\Co::getUid()]['paths'];
     }
-
+    /**
+     * Get the views that have been located.
+     *
+     * @return array
+     */
+    public function getViews()
+    {
+        return static::$corDict[\Co::getUid()]['views'];
+    }
     /**
      * Get the namespace to file path hints.
      *
