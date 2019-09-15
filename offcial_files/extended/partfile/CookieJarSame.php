@@ -1,6 +1,12 @@
-public function queued($key, $default = null)
+public function queued($key, $default = null, $path = null)
 {
-return Arr::get($this->queued, $key, $default);
+    $queued = Arr::get($this->queued, $key, $default);
+
+    if ($path === null) {
+        return Arr::last($queued, null, $default);
+    }
+
+    return Arr::get($queued, $path, $default);
 }
 
 ===A===
@@ -12,22 +18,37 @@ $cookie = head($parameters);
 } else {
 $cookie = call_user_func_array([$this, 'make'], $parameters);
 }
+if (! isset($this->queued[$cookie->getName()])) {
+    $this->queued[$cookie->getName()] = [];
+}
+$this->queued[$cookie->getName()][$cookie->getPath()] = $cookie;
 
-$this->queued[$cookie->getName()] = $cookie;
 }
 
 ===A===
 
-public function unqueue($name)
+public function unqueue($name, $path = null)
 {
-unset($this->queued[$name]);
+
+        if ($path === null) {
+            unset($this->queued[$name]);
+
+            return;
+        }
+
+        unset($this->queued[$name][$path]);
+
+        if (empty($this->queued[$name])) {
+            unset($this->queued[$name]);
+        }
+
 }
 
 ===A===
 
 public function getQueuedCookies()
 {
-return $this->queued;
+return Arr::flatten($this->queued);
 }
 
 ===A===
@@ -85,3 +106,5 @@ protected $queued = [];
 * @return \Symfony\Component\HttpFoundation\Cookie
 */
 public function make($name, $value, $minutes = 0, $path = null, $domain = null, $secure = null, $httpOnly = true, $raw = false, $sameSite = null)
+
+

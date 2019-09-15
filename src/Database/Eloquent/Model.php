@@ -9,25 +9,25 @@
 
 namespace Illuminate\Database\Eloquent;
 
-use Exception;
 use ArrayAccess;
-use JsonSerializable;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Traits\ForwardsCalls;
-use Illuminate\Contracts\Routing\UrlRoutable;
-use Illuminate\Contracts\Queue\QueueableEntity;
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Exception;
 use Illuminate\Contracts\Queue\QueueableCollection;
-use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Contracts\Queue\QueueableEntity;
+use Illuminate\Contracts\Routing\UrlRoutable;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\ConnectionResolverInterface as Resolver;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection as BaseCollection;
+use Illuminate\Support\Str;
+use Illuminate\Support\Traits\ForwardsCalls;
+use JsonSerializable;
 
 use LaravelFly\Map\Illuminate\Database\DatabaseManager;
 use LaravelFly\Map\Util\StaticDict;
 
-abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
+abstract class Model implements Arrayable, ArrayAccess, Jsonable, JsonSerializable, QueueableEntity, UrlRoutable
 {
     use StaticDict;
     protected static $arrayStaticAttri = ['booted'];
@@ -303,7 +303,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         static::$ignoreOnTouch = array_values(array_merge(static::$ignoreOnTouch, $models));
 
         try {
-            call_user_func($callback);
+            $callback();
         } finally {
             static::$ignoreOnTouch = array_values(array_diff(static::$ignoreOnTouch, $models));
         }

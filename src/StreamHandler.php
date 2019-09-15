@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * only add
  *  use \LaravelFly\Map\CommonHack\StreamHandlerLogCache;
@@ -29,9 +29,11 @@ class StreamHandler extends AbstractProcessingHandler
 {
     use \LaravelFly\Map\CommonHack\StreamHandlerLogCache;
 
+    /** @var resource|null */
     protected $stream;
     protected $url;
-    private $errorMessage;
+    /** @var string|null */
+    private $errorMessage;    
     protected $filePermission;
     protected $useLocking;
     private $dirCreated;
@@ -40,7 +42,7 @@ class StreamHandler extends AbstractProcessingHandler
     /**
      * {@inheritdoc}
      */
-    public function close()
+    public function close(): void
     {
         if ($this->url && is_resource($this->stream)) {
             $this->cacheWrite();
@@ -65,7 +67,7 @@ class StreamHandler extends AbstractProcessingHandler
      *
      * @return string|null
      */
-    public function getUrl()
+     public function getUrl(): ?string
     {
         return $this->url;
     }
@@ -76,22 +78,18 @@ class StreamHandler extends AbstractProcessingHandler
      * @param resource $stream
      * @param array $record
      */
-    protected function streamWrite($stream, array $record)
+         protected function streamWrite($stream, array $record): void
     {
         fwrite($stream, (string)$record['formatted']);
     }
 
-    private function customErrorHandler($code, $msg)
+    private function customErrorHandler($code, $msg): bool
     {
         $this->errorMessage = preg_replace('{^(fopen|mkdir)\(.*?\): }', '', $msg);
+        return true;
     }
 
-    /**
-     * @param string $stream
-     *
-     * @return null|string
-     */
-    private function getDirFromStream($stream)
+    private function getDirFromStream(string $stream): ?string
     {
         $pos = strpos($stream, '://');
         if ($pos === false) {
@@ -102,10 +100,10 @@ class StreamHandler extends AbstractProcessingHandler
             return dirname(substr($stream, 7));
         }
 
-        return;
+        return null;
     }
 
-    private function createDir()
+    private function createDir(): void
     {
         // Do not try to create dir if it has already been tried.
         if ($this->dirCreated) {
@@ -115,7 +113,7 @@ class StreamHandler extends AbstractProcessingHandler
         $dir = $this->getDirFromStream($this->url);
         if (null !== $dir && !is_dir($dir)) {
             $this->errorMessage = null;
-            set_error_handler(array($this, 'customErrorHandler'));
+            set_error_handler([$this, 'customErrorHandler']);            
             $status = mkdir($dir, 0777, true);
             restore_error_handler();
             if (false === $status && !is_dir($dir)) {

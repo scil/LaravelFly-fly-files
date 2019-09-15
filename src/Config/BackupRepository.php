@@ -6,8 +6,8 @@
 namespace Illuminate\Config;
 
 use ArrayAccess;
-use Illuminate\Support\Arr;
 use Illuminate\Contracts\Config\Repository as ConfigContract;
+use Illuminate\Support\Arr;
 
 class Repository implements ArrayAccess, ConfigContract
 {

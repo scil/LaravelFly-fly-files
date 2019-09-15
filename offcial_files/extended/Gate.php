@@ -3,13 +3,13 @@
 namespace Illuminate\Auth\Access;
 
 use Exception;
-use ReflectionClass;
-use ReflectionFunction;
+use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use ReflectionClass;
+use ReflectionFunction;
 
 class Gate implements GateContract
 {
@@ -272,11 +272,7 @@ class Gate implements GateContract
     public function check($abilities, $arguments = [])
     {
         return collect($abilities)->every(function ($ability) use ($arguments) {
-            try {
-                return (bool) $this->raw($ability, $arguments);
-            } catch (AuthorizationException $e) {
-                return false;
-            }
+            return $this->inspect($ability, $arguments)->allowed();
         });
     }
 
@@ -316,13 +312,28 @@ class Gate implements GateContract
      */
     public function authorize($ability, $arguments = [])
     {
+        return $this->inspect($ability, $arguments)->authorize();
+    }
+    /**
+     * Inspect the user for the given ability.
+     *
+     * @param  string  $ability
+     * @param  array|mixed  $arguments
+     * @return \Illuminate\Auth\Access\Response
+     */
+    public function inspect($ability, $arguments = [])
+    {
+        try {
         $result = $this->raw($ability, $arguments);
 
         if ($result instanceof Response) {
             return $result;
         }
 
-        return $result ? $this->allow() : $this->deny();
+            return $result ? Response::allow() : Response::deny();
+        } catch (AuthorizationException $e) {
+            return $e->toResponse();
+        }
     }
 
     /**
@@ -331,6 +342,8 @@ class Gate implements GateContract
      * @param  string  $ability
      * @param  array|mixed  $arguments
      * @return mixed
+     *
+     * @throws \Illuminate\Auth\Access\AuthorizationException
      */
     public function raw($ability, $arguments = [])
     {
@@ -528,6 +541,7 @@ class Gate implements GateContract
         }
 
         return function () {
+            //
         };
     }
 

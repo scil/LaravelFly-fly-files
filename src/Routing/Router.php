@@ -6,24 +6,24 @@
 
 namespace Illuminate\Routing;
 
-use Closure;
 use ArrayObject;
-use JsonSerializable;
-use Illuminate\Support\Str;
+use Closure;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Routing\BindingRegistrar;
+use Illuminate\Contracts\Routing\Registrar as RegistrarContract;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
-use Illuminate\Container\Container;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Contracts\Routing\BindingRegistrar;
+use JsonSerializable;
 use Psr\Http\Message\ResponseInterface as PsrResponseInterface;
-use Illuminate\Contracts\Routing\Registrar as RegistrarContract;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -31,7 +31,7 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 /**
  * @mixin \Illuminate\Routing\RouteRegistrar
  */
-class Router implements RegistrarContract, BindingRegistrar
+class Router implements BindingRegistrar, RegistrarContract
 {
     use \LaravelFly\Map\Util\Dict {
         \LaravelFly\Map\Util\Dict::initForRequestCorontine as init;
@@ -463,6 +463,12 @@ class Router implements RegistrarContract, BindingRegistrar
         $route->setAction($this->mergeWithLastGroup($route->getAction()));
     }
 
+    /**
+     * Return the response returned by the given route.
+     *
+     * @param  string  $name
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function respondWithRoute($name)
     {
         $cid = \Co::getUid();
@@ -475,8 +481,8 @@ class Router implements RegistrarContract, BindingRegistrar
     /**
      * Dispatch the request to the application.
      *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function dispatch(Request $request)
     {
@@ -484,7 +490,12 @@ class Router implements RegistrarContract, BindingRegistrar
 
         return $this->dispatchToRoute($request);
     }
-
+    /**
+     * Dispatch the request to a route and return the response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function dispatchToRoute(Request $request)
     {
         return $this->runRoute($request, $this->findRoute($request));
@@ -506,7 +517,7 @@ class Router implements RegistrarContract, BindingRegistrar
      *
      * @param  \Illuminate\Http\Request $request
      * @param  \Illuminate\Routing\Route $route
-     * @return mixed
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     protected function runRoute(Request $request, Route $route)
     {
@@ -544,7 +555,13 @@ class Router implements RegistrarContract, BindingRegistrar
     {
         return (new SortedMiddleware(static::$corDict[\Co::getUid()]['middlewarePriority'], $middlewares))->all();
     }
-
+    /**
+     * Create a response instance from the given value.
+     *
+     * @param  \Symfony\Component\HttpFoundation\Request  $request
+     * @param  mixed  $response
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function prepareResponse($request, $response)
     {
         return static::toResponse($request, $response);
@@ -553,11 +570,11 @@ class Router implements RegistrarContract, BindingRegistrar
     /**
      * Static version of prepareResponse.
      *
-     * @param  \Symfony\Component\HttpFoundation\Request $request
-     * @param  mixed $response
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
-     */
-    public static function toResponse($request, $response)
+     * @param  \Symfony\Component\HttpFoundation\Request  $request
+     * @param  mixed  $response
+     * @return \Symfony\Component\HttpFoundation\Response
+     */    
+     public static function toResponse($request, $response)
     {
         if ($response instanceof Responsable) {
             $response = $response->toResponse($request);
@@ -849,8 +866,8 @@ class Router implements RegistrarContract, BindingRegistrar
     public function emailVerification()
     {
         $this->get('email/verify', 'Auth\VerificationController@show')->name('verification.notice');
-        $this->get('email/verify/{id}', 'Auth\VerificationController@verify')->name('verification.verify');
-        $this->get('email/resend', 'Auth\VerificationController@resend')->name('verification.resend');
+        $this->get('email/verify/{id}/{hash}', 'Auth\VerificationController@verify')->name('verification.verify');
+        $this->post('email/resend', 'Auth\VerificationController@resend')->name('verification.resend');
     }
 
 

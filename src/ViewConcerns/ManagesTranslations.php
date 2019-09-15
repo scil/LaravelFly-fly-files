@@ -25,7 +25,7 @@ trait ManagesTranslations
      */
     public function renderTranslation()
     {
-        return $this->container->make('translator')->getFromJson(
+        return $this->container->make('translator')->get(
             trim(ob_get_clean()), static::$corDict[\Co::getUid()]['translationReplacements']
         );
     }

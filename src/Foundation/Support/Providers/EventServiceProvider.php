@@ -6,9 +6,9 @@
 
 namespace Illuminate\Foundation\Support\Providers;
 
+use Illuminate\Foundation\Events\DiscoverEvents;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Foundation\Events\DiscoverEvents;
 
 use LaravelFly\Map\IlluminateBase\Dispatcher;
 
