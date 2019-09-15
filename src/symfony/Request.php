@@ -394,6 +394,10 @@ class Request
         try {
             $content = $this->getContent();
         } catch (\LogicException $e) {
+             if (\PHP_VERSION_ID >= 70400) {
+                throw $e;
+            }
+
             return trigger_error($e, E_USER_ERROR);
         }
 
@@ -659,7 +663,7 @@ class Request
         return $this->getTrustedValues(self::HEADER_X_FORWARDED_FOR, $ip) ?: [$ip];
     }
 
-    /**
+       /**
      * Returns the client IP address.
      *
      * This method can read the client IP address from the "X-Forwarded-For" header
@@ -668,10 +672,14 @@ class Request
      * being the original client, and each successive proxy that passed the request
      * adding the IP address where it received the request from.
      *
+     * If your reverse proxy uses a different header name than "X-Forwarded-For",
+     * ("Client-Ip" for instance), configure it via the $trustedHeaderSet
+     * argument of the Request::setTrustedProxies() method instead.
+     *
      * @return string|null The client IP address
      *
      * @see getClientIps()
-     * @see http://en.wikipedia.org/wiki/X-Forwarded-For
+     * @see https://wikipedia.org/wiki/X-Forwarded-For
      */
     public function getClientIp()
     {
@@ -795,9 +803,10 @@ class Request
             $pos = strrpos($host, ':');
         }
 
-        if (false !== $pos) {
-            return (int)substr($host, $pos + 1);
+        if (false !== $pos && $port = substr($host, $pos + 1)) {
+            return (int) $port;
         }
+
 
         return 'https' === $this->getScheme() ? 443 : 80;
     }
@@ -1203,6 +1212,8 @@ class Request
                 return $format;
             }
         }
+
+        return null;        
     }
 
     /**
@@ -1586,7 +1597,7 @@ class Request
      * It works if your JavaScript library sets an X-Requested-With HTTP header.
      * It is known to work with common JavaScript frameworks:
      *
-     * @see http://en.wikipedia.org/wiki/List_of_Ajax_frameworks#JavaScript
+     * @see https://wikipedia.org/wiki/List_of_Ajax_frameworks#JavaScript
      *
      * @return bool true if the request is an XMLHttpRequest, false otherwise
      */
@@ -1598,9 +1609,9 @@ class Request
     /*
      * The following methods are derived from code of the Zend Framework (1.10dev - 2010-01-24)
      *
-     * Code subject to the new BSD license (http://framework.zend.com/license/new-bsd).
+     * Code subject to the new BSD license (https://framework.zend.com/license).
      *
-     * Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+     * Copyright (c) 2005-2010 Zend Technologies USA Inc. (https://www.zend.com/)
      */
 
     protected function prepareRequestUri()

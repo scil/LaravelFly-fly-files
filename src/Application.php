@@ -35,7 +35,7 @@ class Application extends \Illuminate\Container\Container implements Application
      *
      * @var string
      */
-    const VERSION = '5.8.27';
+    const VERSION = '5.8.35';
 
     /**
      * The base path for the Laravel installation.
@@ -598,7 +598,8 @@ class Application extends \Illuminate\Container\Container implements Application
         // If the application has already booted, we will call this boot method on
         // the provider class so it has an opportunity to do its boot logic and
         // will be ready for any usage by this developer's application logic.
-        if (static::$corDict[$cid]['booted']) {
+        // if (static::$corDict[$cid]['booted']) {
+        if ($this->isBooted()) {
             $this->bootProvider($provider);
         }
 
@@ -681,11 +682,13 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function loadDeferredProvider($service)
     {
-        $cid = \Co::getUid();
-        if (!isset(static::$corDict[$cid]['deferredServices'][$service])) {
+        // if (!isset(static::$corDict[$cid]['deferredServices'][$service])) {
+        if (! $this->isDeferredService($service)) {
             return;
         }
 
+        $cid = \Co::getUid();
+        
         $provider = static::$corDict[$cid]['deferredServices'][$service];
 
         // If the service provider has not already been loaded and registered we can
@@ -715,7 +718,8 @@ class Application extends \Illuminate\Container\Container implements Application
 
         $this->register($instance = new $provider($this));
 
-        if (!static::$corDict[$cid]['booted']) {
+        // if (!static::$corDict[$cid]['booted']) {
+        if (! $this->isBooted()) {
             $this->booting(function () use ($instance) {
                 $this->bootProvider($instance);
             });
@@ -743,7 +747,8 @@ class Application extends \Illuminate\Container\Container implements Application
         $abstract = $this->getAlias($abstract);
 
         $cid = \Co::getUid();
-        if (isset(static::$corDict[$cid]['deferredServices'][$abstract]) && !isset(static::$corDict[$cid]['instances'][$abstract])) {
+        // if (isset(static::$corDict[$cid]['deferredServices'][$abstract]) && !isset(static::$corDict[$cid]['instances'][$abstract])) {
+        if ($this->isDeferredService($abstract) && !isset(static::$corDict[$cid]['instances'][$abstract])) {
             $this->loadDeferredProvider($abstract);
         }
 
@@ -769,7 +774,7 @@ class Application extends \Illuminate\Container\Container implements Application
      */
     public function bound($abstract)
     {
-        return isset(static::$corDict[\Co::getUid()]['deferredServices'][$abstract]) || parent::bound($abstract);
+        return $this->isDeferredService($abstract) || parent::bound($abstract);
     }
 
     /**
@@ -790,7 +795,8 @@ class Application extends \Illuminate\Container\Container implements Application
     public function boot()
     {
         $cid = \Co::getUid();
-        if (static::$corDict[$cid]['booted']) {
+        // if (static::$corDict[$cid]['booted']) {
+        if ($this->isBooted()) {
             return;
         }
 
