@@ -99,6 +99,11 @@ class AuthServiceProvider extends ServiceProvider
             if (! $app->resolved('auth')) {
                 return;
             }
+
+            if ($app['auth']->hasResolvedGuards() === false) {
+                return;
+            }
+
             if (method_exists($guard = $app['auth']->guard(), 'setDispatcher')) {
                 $guard->setDispatcher($dispatcher);
             }
