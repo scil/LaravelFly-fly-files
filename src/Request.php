@@ -3,7 +3,7 @@
  * 1. dict
  * 2. SingletonRequestException
  * 3. cache vars prefix with 'fly'
- * 4. extra var $corDict['flyChangedForAll']
+ * 4. extra var $corDict['flyChangedForAll'] for updating cache
  * 5. extra caches marked with 'hack'
  */
 
@@ -402,6 +402,9 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     public function json($key = null, $default = null)
     {
         $dict = &static::$corDict[\Swoole\Coroutine::getuid()];
+
+        // print_r(__FILE__,__LINE__);
+
         if (!isset($dict['json'])) {
             static::$corDict[\Swoole\Coroutine::getuid()]['flyChangedForAll'] = true;
             $dict['json'] = new ParameterBag((array)json_decode($this->getContent(), true));
