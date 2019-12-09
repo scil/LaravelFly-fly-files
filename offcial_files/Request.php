@@ -185,6 +185,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
     public function is(...$patterns)
     {
         $path = $this->decodedPath();
+
         foreach ($patterns as $pattern) {
             if (Str::is($pattern, $path)) {
                 return true;
@@ -339,7 +340,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      * Get the JSON payload for the request.
      *
      * @param  string|null  $key
-     * @param  mixed   $default
+     * @param  mixed  $default
      * @return \Symfony\Component\HttpFoundation\ParameterBag|mixed
      */
     public function json($key = null, $default = null)
@@ -395,6 +396,7 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
         );
 
         $request->headers->replace($from->headers->all());
+
         $request->setJson($from->json());
 
         if ($session = $from->getSession()) {
@@ -420,13 +422,13 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
             return $request;
         }
 
-
         $newRequest = (new static)->duplicate(
             $request->query->all(), $request->request->all(), $request->attributes->all(),
             $request->cookies->all(), $request->files->all(), $request->server->all()
         );
 
         $newRequest->headers->replace($request->headers->all());
+
         $newRequest->content = $request->content;
 
         $newRequest->request = $newRequest->getInputSource();
@@ -519,8 +521,8 @@ class Request extends SymfonyRequest implements Arrayable, ArrayAccess
      * Get the route handling the request.
      *
      * @param  string|null  $param
-     * @param  mixed   $default
-     * @return \Illuminate\Routing\Route|object|string
+     * @param  mixed  $default
+     * @return \Illuminate\Routing\Route|object|string|null
      */
     public function route($param = null, $default = null)
     {
