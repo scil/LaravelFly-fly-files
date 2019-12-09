@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
@@ -526,7 +527,7 @@ class Router implements BindingRegistrar, RegistrarContract
             return $route;
         });
 
-        $this->events->dispatch(new Events\RouteMatched($route, $request));
+        $this->events->dispatch(new RouteMatched($route, $request));
 
         return $this->prepareResponse($request,
             $this->runRouteWithinStack($route, $request)
@@ -839,6 +840,12 @@ class Router implements BindingRegistrar, RegistrarContract
             $this->resetPassword();
         }
 
+        // Password Confirmation Routes...
+        if ($options['confirm'] ??
+            class_exists($this->prependGroupNamespace('Auth\ConfirmPasswordController'))) {
+            $this->confirmPassword();
+        }
+
         // Email Verification Routes...
         if ($options['verify'] ?? false) {
             $this->emailVerification();
@@ -858,6 +865,16 @@ class Router implements BindingRegistrar, RegistrarContract
         $this->post('password/reset', 'Auth\ResetPasswordController@reset')->name('password.update');
     }
 
+    /**
+     * Register the typical confirm password routes for an application.
+     *
+     * @return void
+     */
+    public function confirmPassword()
+    {
+        $this->get('password/confirm', 'Auth\ConfirmPasswordController@showConfirmForm')->name('password.confirm');
+        $this->post('password/confirm', 'Auth\ConfirmPasswordController@confirm');
+    }
     /**
      * Register the typical email verification routes for an application.
      *

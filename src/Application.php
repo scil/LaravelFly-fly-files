@@ -14,6 +14,7 @@ use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Events\EventServiceProvider;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
+use Illuminate\Foundation\Events\LocaleUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Log\LogServiceProvider;
 use Illuminate\Routing\RoutingServiceProvider;
@@ -35,7 +36,7 @@ class Application extends \Illuminate\Container\Container implements Application
      *
      * @var string
      */
-        const VERSION = '6.0.3';
+        const VERSION = '6.6.2';
 
     /**
      * The base path for the Laravel installation.
@@ -1124,7 +1125,7 @@ class Application extends \Illuminate\Container\Container implements Application
 
         $this['translator']->setLocale($locale);
 
-        $this['events']->dispatch(new \Illuminate\Foundation\Events\LocaleUpdated($locale));
+        $this['events']->dispatch(new LocaleUpdated($locale));
     }
 
     /**

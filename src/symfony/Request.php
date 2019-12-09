@@ -454,7 +454,7 @@ class Request
         self::$trustedProxies = array_reduce($proxies, function ($proxies, $proxy) {
             if ('REMOTE_ADDR' !== $proxy) {
                 $proxies[] = $proxy;
-            // todo
+            // todo global var allowed?
             } elseif (isset($_SERVER['REMOTE_ADDR'])) {
                 $proxies[] = $_SERVER['REMOTE_ADDR'];
             }
